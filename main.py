@@ -7,22 +7,23 @@ import os
 import logging
 from configparser import ConfigParser
 import platform
+from threading import Thread
 
 PLATFORM = platform.system()
 
-def abs_path(path): return os.path.join(os.path.dirname(__file__), path)
+logging.basicConfig(level = logging.INFO, filename='.EDOpro_SD.log', filemode='w', format='%(levelname)s: %(asctime)s: %(message)s')
 
-logging.basicConfig(level = logging.INFO, filename=abs_path('.sd_creator.log'), filemode='w', format='%(levelname)s: %(asctime)s: %(message)s')
+def abs_path(path): return os.path.join(os.path.dirname(__file__), path)
 
 PROJECT_IGNIS_DEFAULT = os.path.join(os.path.abspath(os.sep), 'ProjectIgnis')
 config = ConfigParser()
-if not os.path.exists(abs_path('.sd_creator.ini')):
+if not os.path.exists(('.EDOpro_SD.ini')):
     config.add_section('ProjectIgnis')
     config.set('ProjectIgnis', 'path', PROJECT_IGNIS_DEFAULT)
-    with open(abs_path('.sd_creator.ini'), 'w') as ini:
+    with open(('.EDOpro_SD.ini'), 'w') as ini:
         config.write(ini)
-    logging.info('Default config file created')
-config.read(abs_path('.sd_creator.ini'))
+    logging.info('Default config-file created')
+config.read(('.EDOpro_SD.ini'))
 logging.info(dict(map(lambda s: (s, dict(config.items(s))), config.keys())))
 PROJECT_IGNIS = config.get('ProjectIgnis', 'path')
 
@@ -70,7 +71,7 @@ def unfold(event):
     unlock = True
     app.focus()
 
-def save():
+def save_background():
     label.configure(text='Please wait...')
     app.update()
     passwords = {'main': [], 'extra': []}
@@ -87,6 +88,9 @@ def save():
     except Exception as e:
         logging.error(e)
         label.configure(text='Something went wrong')
+
+def save():
+    Thread(target=save_background).start()
 
 def delete(event):
     global prompt
