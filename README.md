@@ -1,10 +1,10 @@
-# EDOpro Structure Decks
+# EDOPro Structure Decks
 
-## Download for [Windows](https://fabianjuelich.xyz/EDOpro-SD/EDOpro%20SD.exe)
-![preview](./preview/added.png)
+## Download for [Windows](https://fabianjuelich.xyz/EDOPro-SD/EDOPro%20SD.exe) and [Linux](https://fabianjuelich.xyz/EDOPro-SD/EDOPro%20SD)
+![preview](./preview/deck_added.png)
 
 ## Note:
-- If you did not install the game in the default path, please edit the configuration file that is created at startup
+- If you have not installed the game in the default path or are using Linux, please edit the configuration file that is created at startup
 - The underlying data does not indicate the quantity of a card in the deck, so please add affected ones manually
 
 ### Credits and License
