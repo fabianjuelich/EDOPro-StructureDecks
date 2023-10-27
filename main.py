@@ -131,7 +131,7 @@ app.iconphoto(True, icon)
 combobox = ctk.CTkComboBox(app, values=list(map(lambda sd: sd[0], set_list.items())), command=select)
 combobox.set('Search')
 
-logo = ctk.CTkImage(Image.open(abs_path('assets/EDOPro-logo.png')), size=(100, 164))
+logo = ctk.CTkImage(Image.open(abs_path('assets/EDOPro_logo.png')), size=(100, 164))
 button = ctk.CTkButton(app, text='', fg_color='transparent', image=logo, state='disabled', command=save)
 label = ctk.CTkLabel(app, text='Choose deck')
 
