@@ -46,7 +46,7 @@ class App(ctk.CTk):
         self.combobox.set('Search')
         self.logo = ctk.CTkImage(Image.open(abs_path('assets/EDOPro_logo.png')), size=(100, 164))
         self.button = ctk.CTkButton(self, text='', fg_color='transparent', image=self.logo, state='disabled', command=self.save)
-        self.label = ctk.CTkLabel(self, text='Connecting...')
+        self.label = ctk.CTkLabel(self, text='Choose a deck')
 
         self.combobox.pack()
         self.button.pack()
@@ -72,13 +72,12 @@ class App(ctk.CTk):
                 logging.info('Connected')
                 break
             except Exception as e:
-                logging.warning(e)
+                logging.error(e)
                 if not askretrycancel('Connection error', 'Check your network connection, proxy and firewall.'):
                     self.destroy()
                     break
 
         self.combobox.configure(values=list(map(lambda sd: sd[0], self.set_list.items())))
-        self.label.configure(text='Choose deck')
 
     def enableInput(self, enable):
         self.combobox.configure(state=('normal' if enable else 'disabled'))
@@ -89,13 +88,26 @@ class App(ctk.CTk):
 
     def show_image(self, sd):
         if sd:
-            self.selected = sd
-            img = ctk.CTkImage(Image.open(BytesIO(requests.get(sd['set_image']).content)), size=(100, 164))
-            self.button.configure(image=img, state='normal')
-            if f'{sd["set_name"].replace(":", "")}.ydk' in os.listdir(os.path.join(PROJECT_IGNIS, 'deck')):
-                self.label.configure(text='Already added')
-            else:
-                self.label.configure(text='Click deck to add')
+            try:
+                self.selected = sd
+                img = ctk.CTkImage(Image.open(BytesIO(requests.get(sd['set_image']).content)), size=(100, 164))
+                self.button.configure(image=img)
+                if f'{sd["set_name"].replace(":", "")}.ydk' in os.listdir(os.path.join(PROJECT_IGNIS, 'deck')):
+                    self.label.configure(text='Already added')
+                else:
+                    self.label.configure(text='Click deck to add')
+                self.button.configure(state='normal')
+            except requests.exceptions.RequestException as ce:
+                logging.error(ce)
+                self.connect()
+                self.show_image(sd)
+            except FileNotFoundError as fnfe:
+                logging.error(fnfe)
+                self.label.configure(text='Set Project Ignis path')
+            except Exception as e:
+                logging.error(e)
+                self.button.configure(state='disabled')
+                self.label.configure(text='Something went wrong')
         else:
             self.button.configure(image=self.logo, state='disabled')
             self.selected = None
@@ -138,6 +150,13 @@ class App(ctk.CTk):
             with open(os.path.join(PROJECT_IGNIS, 'deck', f'{self.selected["set_name"].replace(":", "")}.ydk'), 'w') as deck:
                 deck.write('#created by Player\n'+'#main\n'+'\n'.join(passwords['main'])+'\n#extra\n'+'\n'.join(passwords['extra'])+'\n!side')
             self.label.configure(text='Deck added')
+        except requests.exceptions.RequestException as ce:
+            logging.error(ce)
+            self.connect()
+            self.save_background()
+        except FileNotFoundError as fnfe:
+            logging.error(fnfe)
+            self.label.configure(text='Saving error')
         except Exception as e:
             logging.error(e)
             self.label.configure(text='Something went wrong')
@@ -147,7 +166,7 @@ class App(ctk.CTk):
         self.default_combobox()
 
     def save(self, event=None):
-        Thread(target=self.save_background).start()
+        Thread(target=self.save_background, daemon=True).start()
 
     def delete(self, event):
         if self.unlock:
