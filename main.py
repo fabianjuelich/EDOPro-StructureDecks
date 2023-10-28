@@ -1,5 +1,6 @@
 import customtkinter as ctk
 import tkinter as tk
+from tkinter.messagebox import askretrycancel
 from tktooltip import ToolTip
 from PIL import Image
 import requests
@@ -33,22 +34,19 @@ CARD_LIST = 'https://yugiohprices.com/api/set_data/'
 CARD_INFO = 'https://db.ygoprodeck.com/api/v7/cardinfo.php?name='
 
 class App(ctk.CTk):
-
+    
     def __init__(self):
-
         super().__init__()
-
-        self.set_list = dict(filter(lambda sd: bool(sd), list(map(lambda obj: (obj['set_name'], obj) if 'structure deck' in obj['set_name'].lower() else {}, requests.get(SET_LIST).json()))))
 
         self.title('EDOPro SD')
         icon = tk.PhotoImage(file=abs_path('assets/icons8-card-game-66.png'))
         self.iconphoto(True, icon)
 
-        self.combobox = ctk.CTkComboBox(self, values=list(map(lambda sd: sd[0], self.set_list.items())), command=self.select)
+        self.combobox = ctk.CTkComboBox(self, command=self.select)
         self.combobox.set('Search')
         self.logo = ctk.CTkImage(Image.open(abs_path('assets/EDOPro_logo.png')), size=(100, 164))
         self.button = ctk.CTkButton(self, text='', fg_color='transparent', image=self.logo, state='disabled', command=self.save)
-        self.label = ctk.CTkLabel(self, text='Choose deck')
+        self.label = ctk.CTkLabel(self, text='Connecting...')
 
         self.combobox.pack()
         self.button.pack()
@@ -64,6 +62,23 @@ class App(ctk.CTk):
         self.selected = None
 
         ToolTip(self.button, msg=lambda: self.selected['set_name'] if self.selected else '', bg='#1c1c1c', fg='#ffffff')
+
+        self.after(0, self.connect)
+
+    def connect(self):
+        while True: 
+            try:
+                self.set_list = dict(filter(lambda sd: bool(sd), list(map(lambda obj: (obj['set_name'], obj) if 'structure deck' in obj['set_name'].lower() else {}, requests.get(SET_LIST).json()))))
+                logging.info('Connected')
+                break
+            except Exception as e:
+                logging.warning(e)
+                if not askretrycancel('Connection error', 'Check your network connection, proxy and firewall.'):
+                    self.destroy()
+                    break
+
+        self.combobox.configure(values=list(map(lambda sd: sd[0], self.set_list.items())))
+        self.label.configure(text='Choose deck')
 
     def enableInput(self, enable):
         self.combobox.configure(state=('normal' if enable else 'disabled'))
