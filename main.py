@@ -10,6 +10,7 @@ import logging
 from configparser import ConfigParser
 import platform
 from threading import Thread
+import sys
 
 PLATFORM = platform.system()
 
@@ -63,19 +64,19 @@ class App(ctk.CTk):
 
         ToolTip(self.button, msg=lambda: self.selected['set_name'] if self.selected else '', bg='#1c1c1c', fg='#ffffff')
 
-        self.after(0, self.connect)
+        self.connect()
 
     def connect(self):
         while True: 
             try:
-                self.set_list = dict(filter(lambda sd: bool(sd), list(map(lambda obj: (obj['set_name'], obj) if 'structure deck' in obj['set_name'].lower() else {}, requests.get(SET_LIST).json()))))
+                self.set_list = dict(filter(lambda sd: bool(sd), list(map(lambda obj: (obj['set_name'], obj) if 'structure deck' in obj['set_name'].lower() else {}, requests.get(SET_LIST, timeout=3).json()))))
                 logging.info('Connected')
                 break
             except Exception as e:
                 logging.error(e)
                 if not askretrycancel('Connection error', 'Check your network connection, proxy and firewall.'):
                     self.destroy()
-                    break
+                    sys.exit()
 
         self.combobox.configure(values=list(map(lambda sd: sd[0], self.set_list.items())))
 
@@ -90,12 +91,12 @@ class App(ctk.CTk):
         if sd:
             try:
                 self.selected = sd
-                img = ctk.CTkImage(Image.open(BytesIO(requests.get(sd['set_image']).content)), size=(100, 164))
+                img = ctk.CTkImage(Image.open(BytesIO(requests.get(sd['set_image'], timeout=3).content)), size=(100, 164))
                 self.button.configure(image=img)
                 if f'{sd["set_name"].replace(":", "")}.ydk' in os.listdir(os.path.join(PROJECT_IGNIS, 'deck')):
                     self.label.configure(text='Already added')
                 else:
-                    self.label.configure(text='Click deck to add')
+                    self.label.configure(text='Click to add deck')
                 self.button.configure(state='normal')
             except requests.exceptions.RequestException as ce:
                 logging.error(ce)
@@ -103,6 +104,7 @@ class App(ctk.CTk):
                 self.show_image(sd)
             except FileNotFoundError as fnfe:
                 logging.error(fnfe)
+                self.button.configure(state='disabled')
                 self.label.configure(text='Set Project Ignis path')
             except Exception as e:
                 logging.error(e)
@@ -111,7 +113,7 @@ class App(ctk.CTk):
         else:
             self.button.configure(image=self.logo, state='disabled')
             self.selected = None
-            self.label.configure(text='Choose deck')
+            self.label.configure(text='Choose a deck')
 
     def search(self, event):
         self.selected
@@ -141,8 +143,8 @@ class App(ctk.CTk):
         self.update()
         passwords = {'main': [], 'extra': []}
         try:
-            for card in ((requests.get(CARD_LIST+self.selected['set_name'])).json()['data']['cards']):
-                card_info = (requests.get(CARD_INFO+(card['name']).replace('&', '%26')).json())
+            for card in ((requests.get(CARD_LIST+self.selected['set_name'], timeout=3)).json()['data']['cards']):
+                card_info = (requests.get(CARD_INFO+(card['name']).replace('&', '%26'), timeout=3).json())
                 if 'data' in card_info:
                     passwords['extra' if card_info['data'][0]['frameType'] in ['fusion', 'synchro', 'xyz', 'link'] else 'main'].append(str(card_info['data'][0]['id']))
                 else:
@@ -156,7 +158,7 @@ class App(ctk.CTk):
             self.save_background()
         except FileNotFoundError as fnfe:
             logging.error(fnfe)
-            self.label.configure(text='Saving error')
+            self.label.configure(text='Error while saving')
         except Exception as e:
             logging.error(e)
             self.label.configure(text='Something went wrong')
